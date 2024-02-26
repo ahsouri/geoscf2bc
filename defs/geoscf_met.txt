@@ -1,0 +1,9 @@
+# delp lay coordinate is top down, so it must be inverted
+PRES = (ps - delp[:, ::-1].cumsum('lev')[:, ::-1] + delp / 2)
+if 'PERIM' in PRES.dims:
+    PRES = PRES.transpose('time', 'lev', 'PERIM')
+else:
+    PRES = PRES.transpose('time', 'lev', 'CELLS')
+ZH = zl # meters above 
+DENS = airdens * (1 - q) # Dry air density has the water removed
+AIRMOLDENS = DENS / 0.0289628
