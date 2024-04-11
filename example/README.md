@@ -72,4 +72,4 @@ Note that the TEST domain takes about 20 min per day, while the 12US1 takes more
 Report Any Issues
 -----------------
 
-If you have any problems, feel free to open an `issue <https://github.com/barronh/geoscf2bc/issues>`_. 
+If you have any problems, feel free to open an issue at https://github.com/barronh/geoscf2bc/issues. 
