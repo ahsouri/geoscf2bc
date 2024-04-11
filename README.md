@@ -5,12 +5,13 @@ Create lateral boundary conditions from GEOS-CF for CMAQ. Like aqmbc, but specif
 Overview
 --------
 
-I've been using GMAO's OpenDAP server to extract just the grid cells at
-the border of a CMAQ simulation from the GEOS-CF 36-layer archives (met, xgc,
+I've been using GMAO's OpenDAP server to extract GEOS-CF composition from cells
+at the perimeter of a CMAQ domain from the GEOS-CF 36-layer archives (met, xgc,
 chm). These results are being used for Lateral Boundary Conditons for CMAQ.
 
-The Current Process is described below, followed by a "how-to" for EPA's atmos
-cluster. Finally, the directory structure is described with annotations.
+For more information on GEOS-CF, see https://gmao.gsfc.nasa.gov/weather_prediction/GEOS-CF/docs/.
+
+The geoscf2bc installation, application, and conceptual process are described below.
 
 Installation
 ------------
