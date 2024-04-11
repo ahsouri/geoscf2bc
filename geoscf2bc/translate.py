@@ -64,8 +64,19 @@ _ = _prsr.add_argument(
 def getvglvls(m3path=None):
     """
     Returns a set of IOAPI VGTYP, VGLVLS, and VGTOP that define the vertical
-    coordiante of a CMAQ domain.
+    coordinate of a CMAQ domain.
+
+    Arguments
+    ---------
     m3path : str
+        Path to a METCRO3D file
+
+    Returns
+    -------
+    vgtuple : tuple
+        (vgtyp, vglvls, vgtop) where vgtyp is an IOAPI numeric indicator that
+        specifyies the type of vertical coordinate. vglvls and vgtop are the
+        IOAPI definition.
     """
     import PseudoNetCDF as pnc
     if m3path is not None:
@@ -110,7 +121,8 @@ def geoscf2cmaq(
     verbose=0
 ):
     """
-    Convert GEOS-CF
+    Convert GEOS-CF species and format to CMAQ
+
     Arguments
     ---------
     GDNAM : str
@@ -121,11 +133,13 @@ def geoscf2cmaq(
         Must support strftime
     dpdf : pd.DataFrame
         Must have latitude and longitude where index is the perimiter cell in
-        order of IOAPI storage.
+        order of IOAPI storage. Typically, an artifact of `geoscf_extract`
     vglvls : np.ndarray
-        Vertical coordinate for the output file (used by ioapi.interpSigma)
+        Vertical coordinate for the output file (used by ioapi.interpSigma).
+        Typically, sigma: (p - ptop) / (psfc - ptop) ranging from 1 to 0.
+        Newer WRF uses a hybrid and sigma is just an approximation.
     vgtop : float
-        Minimum pressure in Pascalsfor the output file (used by
+        Minimum pressure in Pascals for the output file (used by
         ioapi.interpSigma)
     presist : bool
         If True, write the file to disk

@@ -49,6 +49,7 @@ def concat(
     Returns
     -------
     outpaths : list
+        List of files made by concat
     """
     import pandas as pd
     import xarray as xr
@@ -64,6 +65,7 @@ def concat(
         hourly_times = pd.date_range(date, edate, freq=outfreq)
         daypath = date.strftime(outtmpl)
         if os.path.exists(daypath):
+            outpaths.append(daypath)
             print('Using cached', daypath)
             continue
 

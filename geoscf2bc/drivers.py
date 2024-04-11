@@ -24,6 +24,24 @@ def default(
     extract_only : bool
         If true, exit after extracting data. Useful mainly to separate out
         the long extraction process.
+
+    Returns
+    -------
+    outpaths : list
+        List of output paths
+
+    Example
+    -------
+
+.. code-block:: python
+
+    from geoscf2bc.drivers import default
+    gdpath = './GRIDDESC'
+    outpaths = default('12US1', gdpath, '2024-01-01T00', '2024-01-02T00')
+    print(len(outpaths), 'outputs')
+    # 1 outputs
+    print('e.g.', outpaths[0])
+    # 12US1/2024/01/01/BCON_geoscf_cb6r3_ae7_12US1_2024-01-01T00_25h.nc
     """
     from .extract import geoscf_extract
     from .translate import geoscf2cmaq, getvglvls
@@ -50,3 +68,4 @@ def default(
     geoscf2cmaq(GDNAM, gdpath, indates, dpdf, vglvls, vgtop, verbose=vb)
     opths = concat(GDNAM, outdates, intmpl, outtmpl, infreq=cffreq, verbose=vb)
     print('\n'.join(opths))
+    return opths
