@@ -15,49 +15,40 @@ cluster. Finally, the directory structure is described with annotations.
 Installation
 ------------
 
-% pip install git+https://github.com/barronh/geoscf2bc.git
+```bash
+python -m pip install git+https://github.com/barronh/geoscf2bc.git
+```
 
 Application
 -----------
 
 The example described here creates a boundary condition file for CMAQ for
-2024-01-01.
+2024-01-01. A more detailed explanation is available in the
+[example tutorial](example/README.md).
 
 
 ```python
 from geoscf2bc.drivers import default
-outpaths = default(GDNAM='12US1', gdpath='GRIDDESC', '2024-01-01T00', '2024-01-02T00')
+
+# This example makes its own GRIDDESC. Normally, you use your own.
+with open('GRIDDESC', 'w') as gf:
+    gf.write("""' '
+'LamCon_40N_97W'
+  2 33.0 45.0 -97.0 -97.0 40.0
+' '
+'36US3'
+'LamCon_40N_97W' -2952000.0 -2772000.0 36000.0 36000.0 172 148 1
+' '""")
+
+# The example processes just a single day including 00Z of the next day.
+outpaths = default(
+    GDNAM='36US3', gdpath='GRIDDESC',
+    SDATE='2024-01-01T00', EDATE='2024-01-02T00'
+)
 ```
 
-In doing so, it creates 38 file artifacts.
-* 1 csv definition of the domain perimeter
-* 4 files for each hour extracted from GEOS-CF.
-  * At 3h (8x), that is 32 files for the first day, and
-  * 1h for the 0Z of the next day, that is 4 more files
-* 1 CMAQ-ready boundary conditon for 2024-01-01
-
-```
-./12US1
-|   # Definition of perimeter cells from CMAQ in GEOS-cF
-|-- 12US1_locs.csv
-|-- 2022/01/01/
-|   |   # Hourly chm, met, and xgc extracted from GEOS-CF at perimeter of domain
-|   |-- chm_tavg_1hr_g1440x721_v36_2022-01-01T00_2022-01-01T%H_1h.nc
-|   |-- met_tavg_1hr_g1440x721_v36_2022-01-01T00_2022-01-01T%H_1h.nc
-|   |-- xgc_tavg_1hr_g1440x721_v36_2022-01-01T00_2022-01-01T%H_1h.nc
-|   |   # Hourly CMAQ convention boundary condition file with just 1 time step.
-|   |-- BCON_geoscf_cb6r3_ae7_12US1_2022-01-01T00_2022-01-01T%H_1h.nc
-|   |   # 25h file appropriate for CMAQ lateral boundary conditions for 1 day.
-|   `-- BCON_geoscf_cb6r3_ae7_12US1_2022-01-01T00_25h.nc
-`-- 2022/01/02/
-    |-- chm_tavg_1hr_g1440x721_v36_2022-01-02T00_2022-01-02T00_1h.nc
-    |-- met_tavg_1hr_g1440x721_v36_2022-01-02T00_2022-01-02T00_1h.nc
-    |-- xgc_tavg_1hr_g1440x721_v36_2022-01-02T00_2022-01-02T00_1h.nc
-    `-- BCON_geoscf_cb6r3_ae7_12US1_2022-01-02T00_2022-01-02T00_00h.nc
-```
-
-
-The main driver can also be called from the command line.
+The main driver can also be called from the command line. This assumes you have
+a GRIDDESC in your home directory.
 
 ```bash
 python -m geoscf2bc --cffreq=3h --gdpath=~/GRIDDESC 12US1 2024-01-01T00 2024-01-02T00
