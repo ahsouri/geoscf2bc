@@ -193,17 +193,18 @@ def geoscf2cmaq(
     allvars.update({k: v for k, v in xgcf.data_vars.items()})
 
     # Calculate output met vars
-    mcdef = open('defs/geoscf_met.txt', 'r').read()
+    defroot = os.path.dirname(__file__)
+    mcdef = open(f'{defroot}/defs/geoscf_met.txt', 'r').read()
     metsvars = {}
     exec(mcdef, allvars, metsvars)
 
     # Calculate output gas vars
-    gcdef = open('defs/geoscf_cb6r4.txt', 'r').read()
+    gcdef = open(f'{defroot}/defs/geoscf_cb6r4.txt', 'r').read()
     gcsvars = {}
     exec(gcdef, allvars, gcsvars)
 
     # Calculate output aerosol vars
-    aedef = open('defs/geoscf_ae7.txt', 'r').read()
+    aedef = open(f'{defroot}/defs/geoscf_ae7.txt', 'r').read()
     aesvars = {}
     exec(aedef, allvars, aesvars)
 

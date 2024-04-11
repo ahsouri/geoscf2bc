@@ -36,8 +36,12 @@ def default(
     outtmpl = f'{GDNAM}/%Y/%m/%d/{prefix}_{GDNAM}_%Y-%m-%dT%H_25h.nc'
 
     indates = pd.date_range(SDATE, EDATE, freq=cffreq)
+    if vb > 0:
+        print(indates)
     # Ignore last date, which cannot be complete by definition
     outdates = pd.to_datetime(sorted(set(indates.floor('1d')))[:-1])
+    if vb > 0:
+        print(indates)
     expaths = geoscf_extract(GDNAM, gdpath, indates, verbose=vb)
     if extract_only:
         return expaths
