@@ -31,20 +31,12 @@ The example described here creates a boundary condition file for CMAQ for
 ```python
 from geoscf2bc.drivers import default
 
-# This example makes its own GRIDDESC. Normally, you use your own.
-with open('GRIDDESC', 'w') as gf:
-    gf.write("""' '
-'LamCon_40N_97W'
-  2 33.0 45.0 -97.0 -97.0 40.0
-' '
-'36US3'
-'LamCon_40N_97W' -2952000.0 -2772000.0 36000.0 36000.0 172 148 1
-' '""")
-
 # The example processes just a single day including 00Z of the next day.
+# It uses a built-in GRIDDESC. To provide your own, change gdpath:
+# gdpath='/path/to/your/GRIDDESC'
+gdpath = None
 outpaths = default(
-    GDNAM='36US3', gdpath='GRIDDESC',
-    SDATE='2024-01-01T00', EDATE='2024-01-02T00'
+    GDNAM='36US3', gdpath=gdpath, SDATE='2024-01-01T00', EDATE='2024-01-02T00'
 )
 ```
 

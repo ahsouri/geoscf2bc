@@ -7,7 +7,7 @@ Step 1: Install
 ---------------
 
 ```bash
-pip install git+https://github.com/barronh/geoscf2bc.git
+python -m pip install git+https://github.com/barronh/geoscf2bc.git
 ```
 
 Step 2: Run Example As-is
@@ -16,6 +16,11 @@ Step 2: Run Example As-is
 Running the script is easy, but it does take time. The example uses a small "TEST" domain in the western US. The TEST grid has huge grid cells (108km by 108km), which is not typical -- but  it should run faster than a normal domain (e.g., 12US1). Run the command below, and wait. Depending on your network and the server, it may take 30min.
 
 ```bash
+# Download test configuration using wget (or use your web-browser)
+wget -N https://raw.githubusercontent.com/barronh/geoscf2bc/main/example/GRIDDESC
+# Download test run script using wget (or use your web-browser)
+wget -N https://raw.githubusercontent.com/barronh/geoscf2bc/main/example/run.py
+# Run test script
 python run.py
 ```
 

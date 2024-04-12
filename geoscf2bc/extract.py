@@ -119,7 +119,10 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
     import os
     import PseudoNetCDF as pnc
     from collections import OrderedDict
+    from .defs import griddescpath
 
+    if gdpath is None:
+        gdpath = griddescpath
     dates = pd.to_datetime(dates)
 
     os.makedirs(GDNAM, exist_ok=True)

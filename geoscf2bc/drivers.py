@@ -11,7 +11,7 @@ def default(
     GDNAM : str
         Name of grid for boundaries.
     gdpath : str
-        Path to IOAPI GRIDDESC file
+        Path to IOAPI GRIDDESC file. If gdpath is None, use builtin.
     SDATE : str or pd.Datetime
         Start date (e.g, 2024-01-01T00)
     EDATE : str or pd.Datetime
@@ -46,9 +46,12 @@ def default(
     from .extract import geoscf_extract
     from .translate import geoscf2cmaq, getvglvls
     from .cmaqready import concat
+    from .defs import griddescpath
     import pandas as pd
 
     vb = verbose
+    if gdpath is None:
+        gdpath = griddescpath
     prefix = 'BCON_geoscf_cb6r3_ae7'
     intmpl = f'{GDNAM}/%Y/%m/%d/{prefix}_{GDNAM}_%Y-%m-%dT%H_%Y-%m-%dT%H_1h.nc'
     outtmpl = f'{GDNAM}/%Y/%m/%d/{prefix}_{GDNAM}_%Y-%m-%dT%H_25h.nc'

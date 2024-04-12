@@ -128,7 +128,7 @@ def geoscf2cmaq(
     GDNAM : str
         Name of grid definition
     gdpath : str
-        Path to the GRIDDESC file that defines GDNAM
+        Path to the GRIDDESC file that defines GDNAM. If None, use built-in.
     sdate : datetime
         Must support strftime
     dpdf : pd.DataFrame
@@ -156,7 +156,10 @@ def geoscf2cmaq(
     import xarray as xr
     import os
     from . import __version__ as proc_version
+    from .defs import metdefpath, cb6r4defpath, ae7defpath, griddescpath
 
+    if gdpath is None:
+        gdpath = griddescpath
     # Check for recursive call
     if hasattr(sdate, '__iter__'):
         sdates = sdate
@@ -207,18 +210,17 @@ def geoscf2cmaq(
     allvars.update({k: v for k, v in xgcf.data_vars.items()})
 
     # Calculate output met vars
-    defroot = os.path.dirname(__file__)
-    mcdef = open(f'{defroot}/defs/geoscf_met.txt', 'r').read()
+    mcdef = open(metdefpath, 'r').read()
     metsvars = {}
     exec(mcdef, allvars, metsvars)
 
     # Calculate output gas vars
-    gcdef = open(f'{defroot}/defs/geoscf_cb6r4.txt', 'r').read()
+    gcdef = open(cb6r4defpath, 'r').read()
     gcsvars = {}
     exec(gcdef, allvars, gcsvars)
 
     # Calculate output aerosol vars
-    aedef = open(f'{defroot}/defs/geoscf_ae7.txt', 'r').read()
+    aedef = open(ae7defpath, 'r').read()
     aesvars = {}
     exec(aedef, allvars, aesvars)
 
