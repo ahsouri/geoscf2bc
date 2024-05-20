@@ -96,9 +96,9 @@ def getvglvls(m3path=None):
         vgtop = 5000.
         print(
             f'Using default vertical grid: VGTYP={vgtyp} VGTOP={vgtop} and'
-            + f' {len(vglvls) - 1} layers:'
+            + f' {len(vglvls) - 1} layers:', flush=True
         )
-        print(vglvls)
+        print(vglvls, flush=True)
 
     return vgtyp, vglvls, vgtop
 
@@ -184,7 +184,7 @@ def geoscf2cmaq(
     bcsuffix = f'{GDNAM}_{sdate:%FT%H}_{sdate:%FT%H}_1h.nc'
     outpath = f'{GDNAM}/{sdate:%Y/%m/%d}/BCON_geoscf_cb6r3_ae7_{bcsuffix}'
     if os.path.exists(outpath) and persist and not overwrite:
-        print(outpath, 'cached', end='\r')
+        print(outpath, 'cached', end='\r', flush=True)
         return None, outpath
 
     # Open input files
@@ -302,4 +302,4 @@ if __name__ == '__main__':
             dpdf=dpdf, vglvls=vglvls, vgtop=vgtop,
             overwrite=False
         )
-        print(bcpath + ' '*20, end='\r')
+        print(bcpath + ' '*20, end='\r', flush=True)

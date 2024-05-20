@@ -68,10 +68,10 @@ def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
 
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
     if verbose > 0:
-        print(outpath, end='')
+        print(outpath, end='', flush=True)
     if os.path.exists(outpath):
         if verbose > 0:
-            print('cached')
+            print('cached', flush=True)
         dt = 0
     else:
         t0 = time.time()
@@ -85,12 +85,12 @@ def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
                 tmpf.sel(bcsubset).to_netcdf(outpath)
             except Exception as e:
                 if verbose > 0:
-                    print(str(e), end='.retry.')
+                    print(str(e), end='.retry.', flush=True)
 
         t1 = time.time()
         dt = t1 - t0
         if verbose > 0:
-            print(f'{dt:.0f}s ({ntries} tries)')
+            print(f'{dt:.0f}s ({ntries} tries)', flush=True)
 
     return dt
 
@@ -133,8 +133,8 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
     latb = xr.DataArray(gf.variables['latitude'], dims=('PERIM',))
 
     if verbose > 0:
-        print('GRID', 'ROWS', 'COLS', 'PERIM')
-        print(GDNAM, gf.NROWS, gf.NCOLS, lonb.size)
+        print('GRID', 'ROWS', 'COLS', 'PERIM', flush=True)
+        print(GDNAM, gf.NROWS, gf.NCOLS, lonb.size, flush=True)
 
     rooturl = 'https://opendap.nccs.nasa.gov/dods/gmao/geos-cf/assim'
     meturl = f'{rooturl}/met_tavg_1hr_g1440x721_v36'
@@ -142,14 +142,14 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
     xgcurl = f'{rooturl}/xgc_tavg_1hr_g1440x721_v36'
 
     if verbose > 0:
-        print('opening files')
+        print('opening files', flush=True)
 
     mf = xr.open_dataset(meturl)
     cf = xr.open_dataset(chmurl)
     xf = xr.open_dataset(xgcurl)
 
     if verbose > 0:
-        print('mapping PERIM to lon/lat')
+        print('mapping PERIM to lon/lat', flush=True)
 
     lonidx = mf.lon.sel(lon=lonb, method='nearest')
     latidx = mf.lat.sel(lat=latb, method='nearest')
@@ -198,23 +198,25 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
             and os.path.exists(chmpath)
             and os.path.exists(xgcpath)
         ):
-            print('Skipping', starttime, endtime, 'cached', end='\r')
+            print(
+                'Skipping', starttime, endtime, 'cached', end='\r', flush=True
+            )
             continue
         tmpcf = cf.sel(wdwsubset)
         tmpxf = xf.sel(wdwsubset)
         t1 = time.time()
         if verbose > 0:
-            print(f'Load: {t1 - t0:.1}s')
+            print(f'Load: {t1 - t0:.1}s', flush=True)
         if verbose > 0:
-            print('Retrieve met', end='')
+            print('Retrieve met', end='', flush=True)
         tryandtime(tmpmf, bcsubset, metpath, verbose=verbose)
         outpaths.append(metpath)
         if verbose > 0:
-            print('Retrieve xgc', end='')
+            print('Retrieve xgc', end='', flush=True)
         tryandtime(tmpxf, bcsubset, xgcpath, verbose=verbose)
         outpaths.append(xgcpath)
         if verbose > 0:
-            print('Retrieve chm', end='')
+            print('Retrieve chm', end='', flush=True)
         tryandtime(tmpcf, bcsubset, chmpath, verbose=verbose)
         outpaths.append(chmpath)
         if len(dates) > 1:

@@ -58,11 +58,11 @@ def default(
 
     indates = pd.date_range(SDATE, EDATE, freq=cffreq)
     if vb > 0:
-        print(indates)
+        print(indates, flush=True)
     # Ignore last date, which cannot be complete by definition
     outdates = pd.to_datetime(sorted(set(indates.floor('1d')))[:-1])
     if vb > 0:
-        print(indates)
+        print(indates, flush=True)
     expaths = geoscf_extract(GDNAM, gdpath, indates, verbose=vb)
     if extract_only:
         return expaths
@@ -70,5 +70,5 @@ def default(
     dpdf = pd.read_csv(f'{GDNAM}/{GDNAM}_locs.csv')
     geoscf2cmaq(GDNAM, gdpath, indates, dpdf, vglvls, vgtop, verbose=vb)
     opths = concat(GDNAM, outdates, intmpl, outtmpl, infreq=cffreq, verbose=vb)
-    print('\n'.join(opths))
+    print('\n'.join(opths), flush=True)
     return opths
