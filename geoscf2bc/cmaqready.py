@@ -66,7 +66,7 @@ def concat(
         daypath = date.strftime(outtmpl)
         if os.path.exists(daypath):
             outpaths.append(daypath)
-            print('Using cached', daypath)
+            print('Using cached', daypath, flush=True)
             continue
 
         paths = [hdate.strftime(intmpl) for hdate in times]
@@ -94,7 +94,9 @@ def concat(
             + f'{os.getcwd()}/{intmpl}\nwith dates: \n - '
             + ',\n - '.join(times.strftime('%Y-%m-%dT%H:%M:%SZ'))
         )
-        wdate, wtime = eval(pd.to_datetime('now').strftime('%Y%j, %H%M%S'))
+        now = pd.to_datetime('now', utc=True)
+        wdate = int(now.strftime('%Y%j'))
+        wtime = int(now.strftime('%H%M%S'))
         history = f'Processed by geoscf2bc.cmaqread.concat (v{proc_version}'
         daybcfile.attrs.update(dict(
             WDATE=np.int32(wdate), WTIME=np.int32(wtime),
