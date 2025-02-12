@@ -76,11 +76,11 @@ def concat(
         bcfile.attrs.update(bcfiles[0].attrs)
         bcfile.coords['TSTEP'] = times
         daybcfile = bcfile.interp(TSTEP=hourly_times)
-        for vark in daybcfile.data_vars:
-            if vark == 'TFLAG':
-                daybcfile[vark] = daybcfile[vark].astype('i')
+        for vk in daybcfile.data_vars:
+            if vk == 'TFLAG':
+                daybcfile[vk] = daybcfile[vk].astype('i')
             else:
-                daybcfile[vark] = daybcfile[vark].astype('f')
+                daybcfile[vk] = np.maximum(daybcfile[vk].astype('f'), 1e-30)
 
         jdays = hourly_times.strftime('%Y%j').astype('i').values[:, None]
         ihhmmss = hourly_times.strftime('%H%M%S').astype('i').values[:, None]

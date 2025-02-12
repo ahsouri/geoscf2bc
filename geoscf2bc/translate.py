@@ -31,7 +31,9 @@ This script convert extracted GEOS-CF from GEOS_CF_Extract.py
  to create CMAQ or CAMx boundary conditions.
 
 Notes:
-* `gdpath` and `GDNAM` define the horizontal scope using the perimiter of GDNAM
+* `gdpath` and `GDNAM` define the horizontal scope using the:
+  * PERIM if ftype=2 (good for BCON)
+  * ROW, COL if ftype=1 (good for ICON)
 * SDATE, EDATE and freq will be define the time by:
     dates = pandas.date_range(SDATE, EDATE, freq=freq)
 """)
@@ -46,6 +48,9 @@ _ = _prsr.add_argument(
 _ = _prsr.add_argument(
     '--gdpath', default='GRIDDESC',
     help='Path to IOAPI GRIDDESC file with GDNAM definition'
+)
+_ = _prsr.add_argument(
+    '--ftype', default=2, help='2=bcon; 1=icon'
 )
 _ = _prsr.add_argument(
     'GDNAM', help='Grid name (e.g., 12US1, 12US2, 36US3) defined in gdpath'
@@ -117,8 +122,8 @@ warnings.warn(
 
 
 def geoscf2cmaq(
-    GDNAM, gdpath, sdate, dpdf, vglvls, vgtop, persist=True, overwrite=False,
-    verbose=0
+    GDNAM, gdpath, sdate, dpdf, vglvls, vgtop, ftype=2, persist=True,
+    overwrite=False, verbose=0
 ):
     """
     Convert GEOS-CF species and format to CMAQ
@@ -132,8 +137,9 @@ def geoscf2cmaq(
     sdate : datetime
         Must support strftime
     dpdf : pd.DataFrame
-        Must have latitude and longitude where index is the perimiter cell in
-        order of IOAPI storage. Typically, an artifact of `geoscf_extract`
+        Must have latitude and longitude where index is in the order of CELLS
+        in order of IOAPI storage (ravel of PERIM or ravel of ROW, COL).
+        Typically, an artifact of `geoscf_extract`
     vglvls : np.ndarray
         Vertical coordinate for the output file (used by ioapi.interpSigma).
         Typically, sigma: (p - ptop) / (psfc - ptop) ranging from 1 to 0.
@@ -141,6 +147,8 @@ def geoscf2cmaq(
     vgtop : float
         Minimum pressure in Pascals for the output file (used by
         ioapi.interpSigma)
+    ftype : int
+        1=icon; 2=bcon
     presist : bool
         If True, write the file to disk
     overwrite : bool
@@ -166,8 +174,8 @@ def geoscf2cmaq(
         outpaths = []
         for sdate in sdates:
             outbcf, outpath = geoscf2cmaq(
-                GDNAM, gdpath, sdate, dpdf, vglvls, vgtop, persist=persist,
-                overwrite=overwrite
+                GDNAM, gdpath, sdate, dpdf, vglvls, vgtop, ftype=ftype,
+                persist=persist, overwrite=overwrite
             )
             outpaths.append(outpath)
         return outpaths
@@ -177,12 +185,13 @@ def geoscf2cmaq(
 
     # global None
     # Define file paths
-    suffix = f'{sdate:%Y-%m-%dT%H}_{sdate:%Y-%m-%dT%H}_1h.nc'
+    sfx = {1: 'ICON', 2: 'BCON'}[ftype]
+    suffix = f'{sdate:%Y-%m-%dT%H}_{sdate:%Y-%m-%dT%H}_1h_{sfx}.nc'
     metpath = f'{GDNAM}/{sdate:%Y/%m/%d}/met_tavg_1hr_g1440x721_v36_{suffix}'
     chmpath = f'{GDNAM}/{sdate:%Y/%m/%d}/chm_tavg_1hr_g1440x721_v36_{suffix}'
     xgcpath = f'{GDNAM}/{sdate:%Y/%m/%d}/xgc_tavg_1hr_g1440x721_v36_{suffix}'
     bcsuffix = f'{GDNAM}_{sdate:%FT%H}_{sdate:%FT%H}_1h.nc'
-    outpath = f'{GDNAM}/{sdate:%Y/%m/%d}/BCON_geoscf_cb6r3_ae7_{bcsuffix}'
+    outpath = f'{GDNAM}/{sdate:%Y/%m/%d}/{sfx}_geoscf_cb6r3_ae7_{bcsuffix}'
     if os.path.exists(outpath) and persist and not overwrite:
         print(outpath, 'cached', end='\r', flush=True)
         return None, outpath
@@ -192,7 +201,7 @@ def geoscf2cmaq(
     chmf = xr.open_dataset(chmpath)
     xgcf = xr.open_dataset(xgcpath)
 
-    # Source Perimeter Data Frame (spdf)
+    # Source Cells Data Frame (spdf)
     spdf = metf[['lat', 'lon']].to_dataframe()
 
     # Mapping from source to destination
@@ -201,7 +210,7 @@ def geoscf2cmaq(
     )
     assert (sdpdf.shape[0] == dpdf.shape[0])
 
-    # Plot perimiter of source data
+    # Plot cells of source data
     # plt.scatter(sdpdf.lon, sdpdf.lat, c=dpdf.index)
 
     # Combine met, chm, xgc for easy access
@@ -245,7 +254,7 @@ def geoscf2cmaq(
 
     # Prep a holder file
     bcf = pnc.pncopen(
-        gdpath, format='griddesc', GDNAM=GDNAM, FTYPE=2,
+        gdpath, format='griddesc', GDNAM=GDNAM, FTYPE=ftype,
         NLAYS=CF_VGLVLS.size - 1, VGLVLS=CF_VGLVLS, VGTOP=CF_VGTOP,
         VGTYP=-9999, SDATE=np.int32(sdate.strftime('%Y%j')),
         STIME=np.int32(sdate.strftime('%H%M%S')),
@@ -254,10 +263,12 @@ def geoscf2cmaq(
     # Load the data into the file
     for k, v in outvars.items():
         # Invert lev to match geos-chem expectations
-        # Resample PERIM to match output IOAPI PERIM order
-        bcf.variables[k][:] = v.transpose(
-            'time', 'lev', 'PERIM'
-        )[:, ::-1, sdpdf.PERIM.values]
+        # Resample CELLS to match output IOAPI CELLS order (PERIM or ROW, COL)
+        outvar = bcf.variables[k]
+        vals = v.transpose(
+            'time', 'lev', 'CELLS'
+        )[:, ::-1, sdpdf.CELLS.values]
+        outvar[:] = vals.data.reshape(outvar.shape)
 
     outbcf = bcf.interpSigma(vglvls=vglvls, vgtop=vgtop, interptype='linear')
     FILEDESC = (
@@ -290,10 +301,10 @@ if __name__ == '__main__':
     #   '--gdpath=/home/bhenders/GRIDDESC', '12US1', '2023-04-01', '2023-04-02'
     # ])
     args = _prsr.parse_args()
-
+    sfx = {1: 'ICON', 2: 'BCON'}[args.ftype]
     GDNAM = args.GDNAM
     gdpath = args.gdpath
-    dpdf = pd.read_csv(f'{GDNAM}/{GDNAM}_locs.csv')
+    dpdf = pd.read_csv(f'{GDNAM}/{GDNAM}_{sfx}.csv')
     vgtyp, vglvls, vgtop = getvglvls(args.m3path)
 
     for sdate in pd.date_range(args.SDATE, args.EDATE, freq=args.freq):

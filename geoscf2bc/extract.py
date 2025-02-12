@@ -65,6 +65,7 @@ def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
 
     """
     import os
+    import pandas as pd
 
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
     if verbose > 0:
@@ -85,7 +86,9 @@ def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
                 tmpf.sel(bcsubset).to_netcdf(outpath)
             except Exception as e:
                 if verbose > 0:
-                    print(str(e), end='.retry.', flush=True)
+                    now = pd.to_datetime('now', utc=True)
+                    msg = f'\n{now:%Y-%m-%dT%H:%M:%S.%f}: {str(e)}'
+                    print(msg, end='.retry\n', flush=True)
 
         t1 = time.time()
         dt = t1 - t0
@@ -95,7 +98,7 @@ def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
     return dt
 
 
-def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
+def geoscf_extract(GDNAM, gdpath, dates, ftype=2, sleep=60, verbose=0):
     """
     Arguments
     ---------
@@ -105,6 +108,8 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
         Grid definition file path (GRIDDESC)
     dates : list
         Dates to process
+    ftype : int
+        Type 2=bcon; 1=icon
     sleep : int
         Number of seconds to sleep in between requests.
     verbose : int
@@ -126,14 +131,16 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
     dates = pd.to_datetime(dates)
 
     os.makedirs(GDNAM, exist_ok=True)
-    gf = pnc.pncopen(gdpath, format='griddesc', GDNAM=GDNAM, FTYPE=2)
+    sfx = {1: 'ICON', 2: 'BCON'}[ftype]
+    gf = pnc.pncopen(gdpath, format='griddesc', GDNAM=GDNAM, FTYPE=ftype)
 
     # perimiter lon/lat
-    lonb = xr.DataArray(gf.variables['longitude'], dims=('PERIM',))
-    latb = xr.DataArray(gf.variables['latitude'], dims=('PERIM',))
+    dims = ('CELLS',)
+    lonb = xr.DataArray(gf.variables['longitude'].ravel(), dims=dims)
+    latb = xr.DataArray(gf.variables['latitude'].ravel(), dims=dims)
 
     if verbose > 0:
-        print('GRID', 'ROWS', 'COLS', 'PERIM', flush=True)
+        print('GRID', 'ROWS', 'COLS', 'CELLS', flush=True)
         print(GDNAM, gf.NROWS, gf.NCOLS, lonb.size, flush=True)
 
     rooturl = 'https://opendap.nccs.nasa.gov/dods/gmao/geos-cf/assim'
@@ -153,14 +160,13 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
 
     lonidx = mf.lon.sel(lon=lonb, method='nearest')
     latidx = mf.lat.sel(lat=latb, method='nearest')
-
     locidx = pd.DataFrame(dict(
         lonb=lonb, latb=latb, lon=lonidx, lat=latidx, count=1
     )).set_index(['lonb', 'latb'])
     locuidx = locidx.groupby(['lat', 'lon'], as_index=True).count(
     ).reset_index()
 
-    locidx.to_csv(f'{GDNAM}/{GDNAM}_locs.csv')
+    locidx.to_csv(f'{GDNAM}/{GDNAM}_{sfx}.csv')
 
     metvars = ['zl', 'airdens', 'ps', 'delp', 'q', 't']
 
@@ -169,8 +175,8 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
     wlatslice = slice(*locuidx.lat.quantile([0, 1]).values)
     # Define the slice that extracts the perimiter from the window (or original
     # model)
-    plonslice = xr.DataArray(locuidx.lon, dims=('PERIM',))
-    platslice = xr.DataArray(locuidx.lat, dims=('PERIM',))
+    plonslice = xr.DataArray(locuidx.lon, dims=('CELLS',))
+    platslice = xr.DataArray(locuidx.lat, dims=('CELLS',))
     outpaths = []
     for startdate in dates:
         # slicing to avoid exact issues
@@ -188,7 +194,7 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
         etime = times[-1]
 
         outdir = f'{GDNAM}/{stime:%Y/%m/%d}'
-        pathsuf = f'{stime:%Y-%m-%dT%H}_{etime:%Y-%m-%dT%H}_{nhours}h.nc'
+        pathsuf = f'{stime:%Y-%m-%dT%H}_{etime:%Y-%m-%dT%H}_{nhours}h_{sfx}.nc'
         metpath = f'{outdir}/met_tavg_1hr_g1440x721_v36_{pathsuf}'
         chmpath = f'{outdir}/chm_tavg_1hr_g1440x721_v36_{pathsuf}'
         xgcpath = f'{outdir}/xgc_tavg_1hr_g1440x721_v36_{pathsuf}'
@@ -208,15 +214,15 @@ def geoscf_extract(GDNAM, gdpath, dates, sleep=60, verbose=0):
         if verbose > 0:
             print(f'Load: {t1 - t0:.1}s', flush=True)
         if verbose > 0:
-            print('Retrieve met', end='', flush=True)
+            print('Retrieve met ', end='', flush=True)
         tryandtime(tmpmf, bcsubset, metpath, verbose=verbose)
         outpaths.append(metpath)
         if verbose > 0:
-            print('Retrieve xgc', end='', flush=True)
+            print('Retrieve xgc ', end='', flush=True)
         tryandtime(tmpxf, bcsubset, xgcpath, verbose=verbose)
         outpaths.append(xgcpath)
         if verbose > 0:
-            print('Retrieve chm', end='', flush=True)
+            print('Retrieve chm ', end='', flush=True)
         tryandtime(tmpcf, bcsubset, chmpath, verbose=verbose)
         outpaths.append(chmpath)
         if len(dates) > 1:
