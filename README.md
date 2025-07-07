@@ -1,5 +1,10 @@
 # geoscf2bc
 
+
+Amir: I've forked this repo so that I can tune it to work with the actual GEOS-CF files stored on NASA's discover without having to download the data as part of the process. 
+
+
+
 Create lateral boundary conditions from GEOS-CF for CMAQ. Like aqmbc, but specifically for GEOS-CF.
 
 Overview
