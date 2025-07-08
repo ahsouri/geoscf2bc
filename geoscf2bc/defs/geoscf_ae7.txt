@@ -8,71 +8,71 @@
 # Destination: CMAQ v5.2.1 cb6r3_ae6_aq nvPOA
 # author: Barron H. Henderson
 # contributors: Ben Murphy, Havala Pye
-AALJ = (0.05695 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ACAJ = (0.0118 * sala[:] * 0.0314 + 0.0794 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ACLJ = (0.00945 * dst1[:] * 0.029 + 0.5538 * sala[:] * 0.0314) * airdens / 0.0289628 * 1e9
-ACLK = (0.0119 * (dst2[:] * 0.029 + dst3[:] * 0.029 + dst4[:] * 0.029) + 0.5538 * salc[:] * 0.0314) * airdens / 0.0289628 * 1e9
-AECJ = (0.999 * (bcpi[:] * 0.012 + bcpo[:] * 0.012)) * airdens / 0.0289628 * 1e9
+AALJ = (0.05695 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ACAJ = (0.0118 * SALA[:] * 0.0314 + 0.0794 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ACLJ = (0.00945 * DST1[:] * 0.029 + 0.5538 * SALA[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+ACLK = (0.0119 * (DST2[:] * 0.029 + DST3[:] * 0.029 + DST4[:] * 0.029) + 0.5538 * SALC[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+AECJ = (0.999 * (BCPI[:] * 0.012 + BCPO[:] * 0.012)) * AIRDENS / 0.0289628 * 1e9
 AECI = AECJ[:] / 999
-AFEJ = (0.03355 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
+AFEJ = (0.03355 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
 # splitting gly and mgly between cloud and noncloud using 50:50
 # not currently avaiable
-# AGLYJ = 0.5 * (soagx[:] * 0.058 + soamg[:] * 0.072) * airdens / 0.0289628 * 1e9
+# AGLYJ = 0.5 * (SOAGX[:] * 0.058 + SOAMG[:] * 0.072) * AIRDENS / 0.0289628 * 1e9
 # AORGCJ = AGLYJ[:] * 1
 # All ISOPRENE species map elsewhere
 # ISO1 and ISO2 are not directly used.
 # ISN1OG is too volatile to be in the SVISO2
 # not currently avaiable
-# AISO2J = (ionita[:] * 0.014 + indiol[:] * 0.102 + isn1oa[:] * 0.226) * airdens / 0.0289628 * 1e9
+# AISO2J = (IONITA[:] * 0.014 + INDIOL[:] * 0.102 + ISN1OA[:] * 0.226) * AIRDENS / 0.0289628 * 1e9
 # Ignoring IMAE vapors
 # not currently avaiable
-# SVISO3 = (imae[:]) * 1e6
+# SVISO3 = (IMAE[:]) * 1e6
 # not currently avaiable
-# AISO3J = (soaie[:] * 0.118 + soame[:] * 0.102 + lvocoa[:] * 0.154) * airdens / 0.0289628 * 1e9
-AKJ = (0.0114 * sala[:] * 0.0314 + 0.0377 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-APOCI = (0.001 * (ocpi[:] + ocpo[:]) * 0.012) * airdens / 0.0289628 * 1e9
-APOCJ = (0.999 * (ocpi[:] + ocpo[:]) * 0.012 + 0.5 * 0.01075 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
+# AISO3J = (SOAIE[:] * 0.118 + SOAME[:] * 0.102 + LVOCAA[:] * 0.154) * AIRDENS / 0.0289628 * 1e9
+AKJ = (0.0114 * SALA[:] * 0.0314 + 0.0377 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+APOCI = (0.001 * (OCPI[:] + OCPO[:]) * 0.012) * AIRDENS / 0.0289628 * 1e9
+APOCJ = (0.999 * (OCPI[:] + OCPO[:]) * 0.012 + 0.5 * 0.01075 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
 APNCOMI = 0.4 * APOCI[:]
 APNCOMJ = 0.4 * APOCJ[:]
-AMGJ = (0.0368 * sala[:] * 0.0314) * airdens / 0.0289628 * 1e9
-AMNJ = (0.00115 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ANAJ = (0.3086 * sala[:] * 0.0314 + 0.03935 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ANH4I = (0.01 * nh4[:] * 0.018) * airdens / 0.0289628 * 1e9
-ANH4J = (0.00005 * dst1[:] * 0.029 + 0.99 * nh4[:] * 0.018) * airdens / 0.0289628 * 1e9
-ANO3I = (0.01 * nit[:] * 0.062) * airdens / 0.0289628 * 1e9
-ANO3J = (0.00020 * dst1[:] * 0.029 + 0.99 * nit[:] * 0.062) * airdens / 0.0289628 * 1e9
-ANO3K = (0.0016 * (dst2[:] * 0.029 + dst3[:] * 0.029 + dst4[:] * 0.029) + nits[:] * 0.0314) * airdens / 0.0289628 * 1e9
-AOTHRJ = (0.50219 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ASEACAT = (0.3685 * salc[:] * 0.0314) * airdens / 0.0289628 * 1e9
-ASIJ = (0.19435 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-ASO4I = (0.01 * so4[:] * 0.096) * airdens / 0.0289628 * 1e9
-ASO4J = (0.99 * so4[:] * 0.096 + msa[:] * 0.096 + 0.0225 * dst1[:] * 0.029 + 0.0776 * sala[:] * 0.0314) * airdens / 0.0289628 * 1e9
-ASO4K = (0.0776 * salc[:] * 0.0314 + 0.02655 * (dst2[:] * 0.029 + dst3[:] * 0.029 + dst4[:] * 0.029) + so4s[:] * 0.0314) * airdens / 0.0289628 * 1e9
-ASOIL = (0.95995 * (dst2[:] * 0.029 + dst3[:] * 0.029 + dst4[:] * 0.029)) * airdens / 0.0289628 * 1e9
-ATIJ = (0.0028 * dst1[:] * 0.029) * airdens / 0.0289628 * 1e9
-AISO2I = 0.15 * (isoa1[:] + isoa2[:] + isoa3[:]) * airdens / 0.0289628 * 1e9 * 0.01
-AISO2J = 0.15 * (isoa1[:] + isoa2[:] + isoa3[:]) * airdens / 0.0289628 * 1e9 * 0.99
+AMGJ = (0.0368 * SALA[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+AMNJ = (0.00115 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ANAJ = (0.3086 * SALA[:] * 0.0314 + 0.03935 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ANH4I = (0.01 * NH4[:] * 0.018) * AIRDENS / 0.0289628 * 1e9
+ANH4J = (0.00005 * DST1[:] * 0.029 + 0.99 * NH4[:] * 0.018) * AIRDENS / 0.0289628 * 1e9
+ANO3I = (0.01 * NIT[:] * 0.062) * AIRDENS / 0.0289628 * 1e9
+ANO3J = (0.00020 * DST1[:] * 0.029 + 0.99 * NIT[:] * 0.062) * AIRDENS / 0.0289628 * 1e9
+ANO3K = (0.0016 * (DST2[:] * 0.029 + DST3[:] * 0.029 + DST4[:] * 0.029) + NITs[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+AOTHRJ = (0.50219 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ASEACAT = (0.3685 * SALC[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+ASIJ = (0.19435 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+ASO4I = (0.01 * SO4[:] * 0.096) * AIRDENS / 0.0289628 * 1e9
+ASO4J = (0.99 * SO4[:] * 0.096 + MSA[:] * 0.096 + 0.0225 * DST1[:] * 0.029 + 0.0776 * SALA[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+ASO4K = (0.0776 * SALC[:] * 0.0314 + 0.02655 * (DST2[:] * 0.029 + DST3[:] * 0.029 + DST4[:] * 0.029) + SO4s[:] * 0.0314) * AIRDENS / 0.0289628 * 1e9
+ASOIL = (0.95995 * (DST2[:] * 0.029 + DST3[:] * 0.029 + DST4[:] * 0.029)) * AIRDENS / 0.0289628 * 1e9
+ATIJ = (0.0028 * DST1[:] * 0.029) * AIRDENS / 0.0289628 * 1e9
+AISO2I = 0.15 * (ISOA1[:] + ISOA2[:] + ISOA3[:]) * AIRDENS / 0.0289628 * 1e9 * 0.01
+AISO2J = 0.15 * (ISOA1[:] + ISOA2[:] + ISOA3[:]) * AIRDENS / 0.0289628 * 1e9 * 0.99
 # SQT 1:10 of total terpenes similar to Lee, D'Ambro et al Fig 2
 # not currently avaialble
-# SVSQT = 0.09 * (tsog0[:] + tsog1[:] + tsog2[:] + tsog3[:]) * 1e6
-# ASQTJ = 0.09 * (tsoa0[:] * 0.15 + tsoa1[:] * 0.15 + tsoa2[:] * 0.15 + tsoa3[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT1 = 0.61 * (tsog0[:]) * 1e6
-AMT1J = 0.61 * (tsoa0[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT2 = 0.3 * (tsog0[:]) * 1e6
-AMT2J = 0.3 * (tsoa0[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT3 = 0.91 * (tsog1[:]) * 1e6
-AMT3J = 0.91 * (tsoa1[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT4 = 0.91 * (tsog2[:]) * 1e6
-AMT4J = 0.91 * (tsoa2[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT5 = 0.91 * (tsog3[:]) * 1e6
-AMT5J = 0.91 * (tsoa3[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVMT6 = 0.0 * (tsog3[:]) * 1e6
-AMT6J = 0.00 * (tsoa3[:] * 0.15) * airdens / 0.0289628 * 1e9
-# AMTNO3J = (monita[:] * 0.014) * airdens / 0.0289628 * 1e9
-AAVB1J = (asoan[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVAVB2 = (asog1[:]) * 1e6
-AAVB2J = (asoa1[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVAVB3 = (asog2[:]) * 1e6
-AAVB3J = (asoa2[:] * 0.15) * airdens / 0.0289628 * 1e9
-# SVAVB4 = (asog3[:]) * 1e6
-AAVB4J = (asoa3[:] * 0.15) * airdens / 0.0289628 * 1e9
+# SVSQT = 0.09 * (TSOG0[:] + TSOG1[:] + TSOG2[:] + TSOG3[:]) * 1e6
+# ASQTJ = 0.09 * (TSOA0[:] * 0.15 + TSOA1[:] * 0.15 + TSOA2[:] * 0.15 + TSOA3[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT1 = 0.61 * (TSOG0[:]) * 1e6
+AMT1J = 0.61 * (TSOA0[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT2 = 0.3 * (TSOG0[:]) * 1e6
+AMT2J = 0.3 * (TSOA0[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT3 = 0.91 * (TSOG1[:]) * 1e6
+AMT3J = 0.91 * (TSOA1[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT4 = 0.91 * (TSOG2[:]) * 1e6
+AMT4J = 0.91 * (TSOA2[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT5 = 0.91 * (TSOG3[:]) * 1e6
+AMT5J = 0.91 * (TSOA3[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVMT6 = 0.0 * (TSOG3[:]) * 1e6
+AMT6J = 0.00 * (TSOA3[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# AMTNO3J = (MONITA[:] * 0.014) * AIRDENS / 0.0289628 * 1e9
+AAVB1J = (ASOAN[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVAVB2 = (ASOG1[:]) * 1e6
+AAVB2J = (ASOA1[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVAVB3 = (ASOG2[:]) * 1e6
+AAVB3J = (ASOA2[:] * 0.15) * AIRDENS / 0.0289628 * 1e9
+# SVAVB4 = (ASOG3[:]) * 1e6
+AAVB4J = (ASOA3[:] * 0.15) * AIRDENS / 0.0289628 * 1e9

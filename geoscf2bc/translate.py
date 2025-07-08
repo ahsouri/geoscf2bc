@@ -265,10 +265,14 @@ def geoscf2cmaq(
         # Invert lev to match geos-chem expectations
         # Resample CELLS to match output IOAPI CELLS order (PERIM or ROW, COL)
         outvar = bcf.variables[k]
-        vals = v.transpose(
-            'time', 'lev', 'CELLS'
-        )[:, ::-1, sdpdf.CELLS.values]
-        outvar[:] = vals.data.reshape(outvar.shape)
+        print(v)
+        if not isinstance(v, str):
+           vals = v.transpose(
+             'time', 'lev', 'CELLS'
+             )[:, ::-1, sdpdf.CELLS.values]
+        #else:
+        #vals = v  # or any other appropriate handling
+           outvar[:] = vals.data.reshape(outvar.shape)
 
     outbcf = bcf.interpSigma(vglvls=vglvls, vgtop=vgtop, interptype='linear')
     FILEDESC = (
