@@ -39,8 +39,99 @@ import time
 import warnings
 import os
 import numpy as np
+import pandas as pd
 
 warnings.simplefilter('ignore')
+
+from joblib import Parallel, delayed
+from collections import OrderedDict
+
+def process_single_date(startdate, mf, cf, xf, metvars, wlonslice, wlatslice, plonslice, platslice, 
+                        GDNAM, sfx, verbose=0, sleep=0):
+    # slicing to avoid exact issues
+    starttime = startdate.strftime('%Y-%m-%d %H:00')
+    endtime = startdate.strftime('%Y-%m-%d %H:45')
+    tv = mf.time.sel(time=slice(starttime, endtime)).values
+    nhours = len(tv)
+    
+    # Tried subsetting time separately, it was horrific.
+    wdwsubset = OrderedDict(time=tv, lon=wlonslice, lat=wlatslice)
+    bcsubset = OrderedDict(lon=plonslice, lat=platslice)
+    
+    t0 = time.time()
+    tmpmf = mf[metvars].sel(wdwsubset)
+    times = pd.to_datetime(tmpmf.time.values).to_pydatetime()
+    stime = times[0]
+    etime = times[-1]
+
+    outdir = f'{GDNAM}/{stime:%Y/%m/%d}'
+    pathsuf = f'{stime:%Y-%m-%dT%H}_{etime:%Y-%m-%dT%H}_{nhours}h_{sfx}.nc'
+    metpath = f'{outdir}/met_tavg_1hr_g1440x721_v36_{pathsuf}'
+    chmpath = f'{outdir}/chm_tavg_1hr_g1440x721_v36_{pathsuf}'
+    xgcpath = f'{outdir}/xgc_tavg_1hr_g1440x721_v36_{pathsuf}'
+
+    # Create output directory if it doesn't exist
+    os.makedirs(outdir, exist_ok=True)
+    
+    # Check if all files exist and skip if they do
+    if os.path.exists(metpath) and os.path.exists(chmpath) and os.path.exists(xgcpath):
+        if verbose > 0:
+            print(f'Skipping {starttime} {endtime} (cached)')
+        return []
+    
+    tmpcf = cf.sel(wdwsubset)
+    tmpxf = xf.sel(wdwsubset)
+    t1 = time.time()
+    
+    if verbose > 0:
+        print(f'Load: {t1 - t0:.1f}s', flush=True)
+        print(f'Processing {starttime}-{endtime}')
+    
+    local_outpaths = []
+    
+    if verbose > 0:
+        print(f'Retrieve met for {starttime}', end='', flush=True)
+    process_and_save(tmpmf, bcsubset, metpath, verbose=verbose)
+    local_outpaths.append(metpath)
+    
+    if verbose > 0:
+        print(f'Retrieve xgc for {starttime}', end='', flush=True)
+    process_and_save(tmpxf, bcsubset, xgcpath, verbose=verbose)
+    local_outpaths.append(xgcpath)
+    
+    if verbose > 0:
+        print(f'Retrieve chm for {starttime}', end='', flush=True)
+    process_and_save(tmpcf, bcsubset, chmpath, verbose=verbose)
+    local_outpaths.append(chmpath)
+    
+    return local_outpaths
+
+# Main function that uses joblib to parallelize processing
+def process_dates_parallel(dates, mf, cf, xf, metvars, wlonslice, wlatslice, plonslice, platslice, 
+                           GDNAM, sfx, n_jobs=-1, verbose=0, sleep=0):
+    """
+    Process dates in parallel using joblib
+    
+    Parameters:
+    -----------
+    dates: list of datetime objects
+        Dates to process
+    n_jobs: int
+        Number of parallel jobs. -1 means using all processors
+    """
+    results = Parallel(n_jobs=n_jobs, verbose=10)(
+        delayed(process_single_date)(
+            startdate, mf, cf, xf, metvars, wlonslice, wlatslice, plonslice, platslice,
+            GDNAM, sfx, verbose=max(0, verbose-1), sleep=sleep
+        ) for startdate in dates
+    )
+
+    # Maintain original order: results are returned in same order as input dates
+    outpaths = []
+    for date_results in results:  # This preserves date order
+        outpaths.extend(date_results)  # This preserves met->xgc->chm order within each date
+    
+    return outpaths    
 
 # Function to get file patterns for a given date
 def get_file_paths(date, file_type):
@@ -260,8 +351,6 @@ def geoscf_extract(GDNAM, gdpath, dates, ftype=2, sleep=60, verbose=1):
     dims = ('CELLS',)
     lonb = xr.DataArray(gf.variables['longitude'].ravel(), dims=dims)
     latb = xr.DataArray(gf.variables['latitude'].ravel(), dims=dims)
-    print(np.size(lonb))
-    print(np.size(latb))
     if verbose > 0:
         print('GRID', 'ROWS', 'COLS', 'CELLS', flush=True)
         print(GDNAM, gf.NROWS, gf.NCOLS, lonb.size, flush=True)
@@ -300,53 +389,8 @@ def geoscf_extract(GDNAM, gdpath, dates, ftype=2, sleep=60, verbose=1):
     # model)
     plonslice = xr.DataArray(locuidx.lon, dims=('CELLS',))
     platslice = xr.DataArray(locuidx.lat, dims=('CELLS',))
-    outpaths = []
-    for startdate in dates:
-        # slicing to avoid exact issues
-        starttime = startdate.strftime('%Y-%m-%d %H:00')
-        endtime = startdate.strftime('%Y-%m-%d %H:45')
-        tv = mf.time.sel(time=slice(starttime, endtime)).values
-        nhours = len(tv)
-        # Tried subsetting time separately, it was horrific.
-        wdwsubset = OrderedDict(time=tv, lon=wlonslice, lat=wlatslice)
-        bcsubset = OrderedDict(lon=plonslice, lat=platslice)
-        t0 = time.time()
-        tmpmf = mf[metvars].sel(wdwsubset)
-        times = pd.to_datetime(tmpmf.time.values).to_pydatetime()
-        stime = times[0]
-        etime = times[-1]
 
-        outdir = f'{GDNAM}/{stime:%Y/%m/%d}'
-        pathsuf = f'{stime:%Y-%m-%dT%H}_{etime:%Y-%m-%dT%H}_{nhours}h_{sfx}.nc'
-        metpath = f'{outdir}/met_tavg_1hr_g1440x721_v36_{pathsuf}'
-        chmpath = f'{outdir}/chm_tavg_1hr_g1440x721_v36_{pathsuf}'
-        xgcpath = f'{outdir}/xgc_tavg_1hr_g1440x721_v36_{pathsuf}'
 
-        if (
-            os.path.exists(metpath)
-            and os.path.exists(chmpath)
-            and os.path.exists(xgcpath)
-        ):
-            print(
-                'Skipping', starttime, endtime, 'cached', end='\r', flush=True
-            )
-            continue
-        tmpcf = cf.sel(wdwsubset)
-        tmpxf = xf.sel(wdwsubset)
-        t1 = time.time()
-        if verbose > 0:
-            print(f'Load: {t1 - t0:.1}s', flush=True)
-        if verbose > 0:
-            print('Retrieve met ', end='', flush=True)
-        process_and_save(tmpmf, bcsubset, metpath, verbose=verbose)
-        outpaths.append(metpath)
-        if verbose > 0:
-            print('Retrieve xgc ', end='', flush=True)
-        process_and_save(tmpxf, bcsubset, xgcpath, verbose=verbose)
-        outpaths.append(xgcpath)
-        if verbose > 0:
-            print('Retrieve chm ', end='', flush=True)
-        process_and_save(tmpcf, bcsubset, chmpath, verbose=verbose)
-        outpaths.append(chmpath)
-        if len(dates) > 1:
-            time.sleep(sleep)
+    outpaths = process_dates_parallel(
+       dates, mf, cf, xf, metvars, wlonslice, wlatslice, plonslice, platslice,
+       GDNAM, sfx, n_jobs=12, verbose=verbose, sleep=sleep)
