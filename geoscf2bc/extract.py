@@ -40,6 +40,7 @@ import warnings
 import os
 import numpy as np
 import pandas as pd
+import netCDF4 as nc
 
 warnings.simplefilter('ignore')
 
@@ -53,11 +54,11 @@ def process_single_date(startdate, mf, cf, xf, metvars, wlonslice, wlatslice, pl
     endtime = startdate.strftime('%Y-%m-%d %H:45')
     tv = mf.time.sel(time=slice(starttime, endtime)).values
     nhours = len(tv)
-    
+    print("Step3")
     # Tried subsetting time separately, it was horrific.
     wdwsubset = OrderedDict(time=tv, lon=wlonslice, lat=wlatslice)
     bcsubset = OrderedDict(lon=plonslice, lat=platslice)
-    
+    print("step4")
     t0 = time.time()
     tmpmf = mf[metvars].sel(wdwsubset)
     times = pd.to_datetime(tmpmf.time.values).to_pydatetime()
@@ -91,6 +92,7 @@ def process_single_date(startdate, mf, cf, xf, metvars, wlonslice, wlatslice, pl
     
     if verbose > 0:
         print(f'Retrieve met for {starttime}', end='', flush=True)
+    print("step5")
     process_and_save(tmpmf, bcsubset, metpath, verbose=verbose)
     local_outpaths.append(metpath)
     
@@ -157,62 +159,6 @@ def get_file_paths(date, file_type):
 import glob
 import xarray as xr
 
-def tryandtime(tmpf, bcsubset, outpath, maxtries=10, verbose=0):
-    """
-    This function tries to download data in tmpf via OpenDAP. If it fails,
-    then it tries again up to maxtries. The entire process is timed.
-
-    Arguments
-    ---------
-    tmpf : xarray.Dataset
-        File from GEOS-CF
-    bcsubset : dict
-        Mappable of slices
-    outpath : str
-        Path to archive results
-    maxtries: int
-        Number of times to retry if there is a failure.
-    verbose: int
-        Print logging data
-    Returns
-    -------
-    dt : float
-        Time elapsed.
-
-    """
-    import os
-    import pandas as pd
-    print("trying")
-    os.makedirs(os.path.dirname(outpath), exist_ok=True)
-    if verbose > 0:
-        print(outpath, end='', flush=True)
-    if os.path.exists(outpath):
-        if verbose > 0:
-            print('cached', flush=True)
-        dt = 0
-    else:
-        t0 = time.time()
-        ntries = 0
-        while not os.path.exists(outpath) and ntries < maxtries:
-            ntries += 1
-            try:
-                # Might fail
-                tmpf.load()
-                # Unlikely to fail
-                tmpf.sel(bcsubset).to_netcdf(outpath)
-            except Exception as e:
-                if verbose > 0:
-                    now = pd.to_datetime('now', utc=True)
-                    msg = f'\n{now:%Y-%m-%dT%H:%M:%S.%f}: {str(e)}'
-                    print(msg, end='.retry\n', flush=True)
-
-        t1 = time.time()
-        dt = t1 - t0
-        if verbose > 0:
-            print(f'{dt:.0f}s ({ntries} tries)', flush=True)
-
-    return dt
-
 def clean_dataset_attributes(ds):
     """Remove problematic attributes that can cause HDF5 errors"""
     import copy
@@ -262,24 +208,76 @@ def process_and_save(tmpf, bcsubset, outpath, verbose=0):
         dt = 0
     else:
         t0 = time.time()
-        
+        print("step 6")
         # Process the data
         subset_data = tmpf.sel(bcsubset)
-            
-        # Clean problematic attributes
-        clean_data = clean_dataset_attributes(subset_data)
-            
-        # Save with explicit encoding to avoid HDF5 issues
         encoding = {}
-        for var in clean_data.data_vars:
-                encoding[var] = {
-                    'zlib': True,
-                    'complevel': 1,
-                    '_FillValue': None
-                }
-            
-        clean_data.to_netcdf(outpath, encoding=encoding)
-            
+        for var in subset_data.variables:
+            # Remove chunking, use compression only
+            encoding[var] = {
+              '_FillValue': None,
+              'zlib': True,
+              'complevel': 1,
+              'chunksizes': None  # Disable explicit chunking
+            }
+
+        print("step 7")
+        #subset_data.to_netcdf(outpath,engine='scipy',format='NETCDF3_64BIT')
+        clean_data = subset_data
+        # Create new netCDF4 file
+        with nc.Dataset(outpath, 'w', format='NETCDF4') as ncfile:
+    
+             # Create dimensions
+             for dim_name, dim_size in clean_data.dims.items():
+                 ncfile.createDimension(dim_name, dim_size)
+    
+             # Create coordinate variables first
+             for coord_name in clean_data.coords:
+                 coord_data = clean_data[coord_name]
+        
+                 # Create variable
+                 var = ncfile.createVariable(
+                     coord_name, 
+                     coord_data.dtype, 
+                     coord_data.dims,
+                     zlib=True,
+                     complevel=4
+                     )
+        
+                 # Write data
+                 var[:] = coord_data.values
+        
+                 # Add minimal attributes if needed
+                 var.units = coord_data.attrs.get('units', '')
+                 var.long_name = coord_data.attrs.get('long_name', coord_name)
+    
+             # Create data variables
+             for var_name in clean_data.data_vars:
+                 var_data = clean_data[var_name]
+        
+                 # Create variable
+                 var = ncfile.createVariable(
+                    var_name,
+                    var_data.dtype,
+                    var_data.dims,
+                    zlib=True,
+                    complevel=4,
+                    fill_value=None
+                    )
+        
+                 # Write data
+                 var[:] = var_data.values
+        
+                 # Add minimal attributes if needed
+                 var.units = var_data.attrs.get('units', '')
+                 var.long_name = var_data.attrs.get('long_name', var_name)
+    
+             # Add global attributes (minimal)
+             ncfile.title = "Processed data"
+             ncfile.history = f"Created on {pd.Timestamp.now()}"
+
+        print("step 8")
+        #clean_data.to_netcdf(outpath)
         t1 = time.time()
         dt = t1 - t0
         if verbose > 0:
@@ -354,7 +352,7 @@ def geoscf_extract(GDNAM, gdpath, dates, ftype=2, sleep=60, verbose=1):
     if verbose > 0:
         print('GRID', 'ROWS', 'COLS', 'CELLS', flush=True)
         print(GDNAM, gf.NROWS, gf.NCOLS, lonb.size, flush=True)
-
+    print("step1")
     try:
        print("Reading mf...")
        mf = open_dataset_from_files(dates, 'met')
@@ -390,7 +388,7 @@ def geoscf_extract(GDNAM, gdpath, dates, ftype=2, sleep=60, verbose=1):
     plonslice = xr.DataArray(locuidx.lon, dims=('CELLS',))
     platslice = xr.DataArray(locuidx.lat, dims=('CELLS',))
 
-
+    print("step2")
     outpaths = process_dates_parallel(
        dates, mf, cf, xf, metvars, wlonslice, wlatslice, plonslice, platslice,
-       GDNAM, sfx, n_jobs=12, verbose=verbose, sleep=sleep)
+       GDNAM, sfx, n_jobs=1, verbose=verbose, sleep=sleep)
