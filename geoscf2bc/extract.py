@@ -41,6 +41,7 @@ import os
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
+from datetime import datetime
 
 warnings.simplefilter('ignore')
 
@@ -206,6 +207,7 @@ def process_and_save(tmpf, bcsubset, outpath, verbose=0):
         if verbose > 0:
             print(' cached', flush=True)
         dt = 0
+        return dt
     else:
         t0 = time.time()
         print("step 6")
@@ -225,56 +227,141 @@ def process_and_save(tmpf, bcsubset, outpath, verbose=0):
         #subset_data.to_netcdf(outpath,engine='scipy',format='NETCDF3_64BIT')
         clean_data = subset_data
         # Create new netCDF4 file
-        with nc.Dataset(outpath, 'w', format='NETCDF4') as ncfile:
+
+
+
+    # Create new netCDF4 file
+    with nc.Dataset(outpath, 'w', format='NETCDF4') as ncfile:
     
-             # Create dimensions
-             for dim_name, dim_size in clean_data.dims.items():
-                 ncfile.createDimension(dim_name, dim_size)
+        # Create dimensions
+        for dim_name, dim_size in clean_data.dims.items():
+            ncfile.createDimension(dim_name, dim_size)
     
-             # Create coordinate variables first
-             for coord_name in clean_data.coords:
-                 coord_data = clean_data[coord_name]
+        # Create coordinate variables first
+        for coord_name in clean_data.coords:
+            coord_data = clean_data[coord_name]
         
-                 # Create variable
-                 var = ncfile.createVariable(
-                     coord_name, 
-                     coord_data.dtype, 
-                     coord_data.dims,
-                     zlib=True,
-                     complevel=4
-                     )
+            # Check if it's a datetime variable
+            if np.issubdtype(coord_data.dtype, np.datetime64):
+                # Convert datetime64 to days since a reference date
+                reference_date = datetime(1900, 1, 1)  # Common reference
+            
+                # Convert to numeric (days since reference)
+                try:
+                    # First convert datetime64[ns] to datetime objects
+                    datetime_objects = coord_data.values.astype('datetime64[s]').astype(datetime)
+                
+                    # Then convert to numeric values using netCDF4's function
+                    numeric_data = nc.date2num(
+                        datetime_objects,
+                        units=f'days since {reference_date.strftime("%Y-%m-%d %H:%M:%S")}',
+                        calendar='gregorian'
+                    )
+                
+                    # Create variable as float64
+                    var = ncfile.createVariable(
+                        coord_name, 
+                        'f8',  # float64
+                        coord_data.dims,
+                        zlib=True,
+                        complevel=4
+                    )
+                
+                    # Write numeric data
+                    var[:] = numeric_data
+                
+                    # Add time attributes
+                    var.units = f'days since {reference_date.strftime("%Y-%m-%d %H:%M:%S")}'
+                    var.calendar = 'gregorian'
+                    var.long_name = coord_data.attrs.get('long_name', coord_name)
+                
+                except Exception as e:
+                    print(f"Error converting datetime for {coord_name}: {e}")
+                    # Fallback: store as strings
+                    string_dates = np.array([str(d) for d in coord_data.values])
+                    var = ncfile.createVariable(coord_name, 'S50', coord_data.dims)
+                    var[:] = string_dates
         
-                 # Write data
-                 var[:] = coord_data.values
-        
-                 # Add minimal attributes if needed
-                 var.units = coord_data.attrs.get('units', '')
-                 var.long_name = coord_data.attrs.get('long_name', coord_name)
+            else:
+                # Create variable with original datatype
+                var = ncfile.createVariable(
+                    coord_name, 
+                    coord_data.dtype, 
+                    coord_data.dims,
+                    zlib=True,
+                    complevel=4
+                )
+            
+                # Write data
+                var[:] = coord_data.values
+            
+                # Add minimal attributes if needed
+                var.units = coord_data.attrs.get('units', '')
+                var.long_name = coord_data.attrs.get('long_name', coord_name)
     
-             # Create data variables
-             for var_name in clean_data.data_vars:
-                 var_data = clean_data[var_name]
+        # Create data variables
+        for var_name in clean_data.data_vars:
+            var_data = clean_data[var_name]
         
-                 # Create variable
-                 var = ncfile.createVariable(
+            # Check if it's a datetime variable
+            if np.issubdtype(var_data.dtype, np.datetime64):
+                # Convert datetime64 to days since a reference date
+                reference_date = datetime(1900, 1, 1)
+            
+                try:
+                    # Convert to datetime objects then to numeric
+                    datetime_objects = var_data.values.astype('datetime64[s]').astype(datetime)
+                    numeric_data = nc.date2num(
+                        datetime_objects,
+                        units=f'days since {reference_date.strftime("%Y-%m-%d %H:%M:%S")}',
+                        calendar='gregorian'
+                    )
+                
+                    # Create variable
+                    var = ncfile.createVariable(
+                        var_name,
+                        'f8',
+                        var_data.dims,
+                        zlib=True,
+                        complevel=4,
+                        fill_value=None
+                    )
+                
+                    # Write data
+                    var[:] = numeric_data
+                
+                    # Add time attributes
+                    var.units = f'days since {reference_date.strftime("%Y-%m-%d %H:%M:%S")}'
+                    var.calendar = 'gregorian'
+                    var.long_name = var_data.attrs.get('long_name', var_name)
+                
+                except Exception as e:
+                    print(f"Error converting datetime for {var_name}: {e}")
+                    # Fallback to string representation
+                    string_dates = np.array([str(d) for d in var_data.values])
+                    var = ncfile.createVariable(var_name, 'S50', var_data.dims)
+                    var[:] = string_dates
+            else:
+                # Create variable
+                var = ncfile.createVariable(
                     var_name,
                     var_data.dtype,
                     var_data.dims,
                     zlib=True,
                     complevel=4,
                     fill_value=None
-                    )
-        
-                 # Write data
-                 var[:] = var_data.values
-        
-                 # Add minimal attributes if needed
-                 var.units = var_data.attrs.get('units', '')
-                 var.long_name = var_data.attrs.get('long_name', var_name)
+                )
+            
+                # Write data
+                var[:] = var_data.values
+            
+                # Add minimal attributes if needed
+                var.units = var_data.attrs.get('units', '')
+                var.long_name = var_data.attrs.get('long_name', var_name)
     
-             # Add global attributes (minimal)
-             ncfile.title = "Processed data"
-             ncfile.history = f"Created on {pd.Timestamp.now()}"
+        # Add global attributes (minimal)
+        ncfile.title = "Processed data"
+        ncfile.history = f"Created on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
         print("step 8")
         #clean_data.to_netcdf(outpath)
